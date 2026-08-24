@@ -95,7 +95,6 @@ def load_data():
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
-        # dtype=str rakhne se excel ke percentages/decimals apni exact string form mein read hote hain bina round-off ya float conversion ke
         df = pd.read_excel(EXCEL_FILE, sheet_name='MTD Trend', dtype=str)
     except Exception:
         df = pd.read_excel(EXCEL_FILE, dtype=str)
