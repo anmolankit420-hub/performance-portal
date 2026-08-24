@@ -12,7 +12,7 @@ ONEDRIVE_DIRECT_URL = "https://interactaibpo1-my.sharepoint.com/:x:/g/personal/a
 
 def load_data():
     try:
-        response = requests.get(ONEDRIVE_DIRECT_URL)
+        response = requests.get(ONEDRIVE_DIRECT_URL, timeout=15)
         if response.status_code == 200:
             with open(EXCEL_FILE, 'wb') as f:
                 f.write(response.content)
@@ -27,9 +27,9 @@ def load_data():
         ])
         df.to_excel(EXCEL_FILE, index=False)
         
-    df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
+    # Memory bachane ke liye low_memory=False use karein
+    df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str}, low_memory=False)
     
-    # Sirf text/object columns ko blank se fill karein taaki float columns crash na hon
     for col in df.select_dtypes(include=['object']):
         df[col] = df[col].fillna('')
         
