@@ -19,12 +19,12 @@ def load_data():
     except Exception as e:
         print("Auto-sync warning:", e)
 
-    # Bina comma wala exact column name yahan set hai
+    # Aapke bataye gaye exact columns ki list
     desired_columns = [
         'CZ ID', 'Names', 'Shift', 'TL', 'QA', 'PIP', 'June', 'July', 'MTD Aug', 
         'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%', 'Mandays', 'CPA', 
         'Target-Booking%', 'Booking%', 'Target-POC%', 'POC%', 'Realization%', 
-        'Productivity', 'SOB Utilization%', 'URN'
+        'Productivity', 'SOB Utilization%', 'URN', 'Status'
     ]
 
     if not os.path.exists(EXCEL_FILE):
@@ -39,10 +39,11 @@ def load_data():
     # Column names se extra spaces hataein aur string banayein
     df.columns = [str(col).strip() for col in df.columns]
     
+    # Column mapping taaki 'Name' ya 'Agent Name' aaye toh wo 'Names' ban jaye
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower()
-        if col_lower in ['name', 'agent name', 'agent_name'] and 'Names' in desired_columns:
+        if col_lower in ['name', 'agent name', 'agent_name', 'names']:
             rename_map[col] = 'Names'
         elif 'cz' in col_lower and col != 'CZ ID':
             rename_map[col] = 'CZ ID'
@@ -61,6 +62,7 @@ def load_data():
         df[col] = df[col].fillna('')
         
     return df
+
 def save_data(df):
     df.to_excel(EXCEL_FILE, index=False)
 
@@ -73,13 +75,16 @@ def check_performance():
     cz_id = request.form.get('cz_id', '').strip()
     df = load_data()
     
+    # Duplicate columns hata dein taaki conflict na ho
+    df = df.loc[:, ~df.columns.duplicated()]
+    
     agent = df[df['CZ ID'] == cz_id]
     if agent.empty:
         return render_template('index.html', error="Invalid CZ ID or Not Found.")
     
     agent_data = agent.iloc[0].to_dict()
     
-    if agent_data.get('Status', 'Active') == 'Inactive':
+    if str(agent_data.get('Status', 'Active')).strip() == 'Inactive':
         return render_template('index.html', warning="Your CZ ID will be temporary locked.. Please contact to the Administrator.")
         
     return render_template('profile.html', agent=agent_data)
@@ -101,9 +106,11 @@ def admin_panel():
         return redirect(url_for('admin_login'))
     
     df = load_data()
+    df = df.loc[:, ~df.columns.duplicated()]
+    
     search = request.args.get('search', '').strip()
     if search:
-        df = df[df['CZ ID'].str.contains(search, case=False) | df['Name'].str.contains(search, case=False)]
+        df = df[df['CZ ID'].astype(str).str.contains(search, case=False, na=False) | df['Names'].astype(str).str.contains(search, case=False, na=False)]
     
     agents = df.to_dict(orient='records')
     return render_template('admin_panel.html', agents=agents, search=search)
@@ -115,6 +122,7 @@ def update_agent():
     
     cz_id = request.form.get('cz_id')
     df = load_data()
+    df = df.loc[:, ~df.columns.duplicated()]
     
     if cz_id in df['CZ ID'].values:
         idx = df[df['CZ ID'] == cz_id].index[0]
@@ -134,15 +142,16 @@ def add_agent():
     tl = request.form.get('tl', 'Default TL').strip()
     
     df = load_data()
+    df = df.loc[:, ~df.columns.duplicated()]
+    
     if cz_id in df['CZ ID'].values:
         return redirect(url_for('admin_panel'))
     
     new_row = {
-        'CZ ID': cz_id, 'Name': name, 'TL': tl,
-        'D-Day': 85.0, 'D-1': 82.0, 'MTD August': 84.5, 'D-Day SOB POC%': 20.0,
-        'Mandays': 22, 'CPA': 200.0, 'Target Booking': 60, 'Booking': 45, 'Booking %': '75.0%',
-        'Target POC%': '20.0%', 'POC': '25.0%', 'Realisation': 90.0, 'Productivity': 95.0, 
-        'SOB Utilisation': 88.0, 'URN': 250, 'Status': 'Active'
+        'CZ ID': cz_id, 'Names': name, 'Shift': 'General', 'TL': tl, 'QA': '', 'PIP': '',
+        'June': '', 'July': '', 'MTD Aug': 0, 'D-2': 0, 'D-1': 0, 'D-Day': 0, 'D-Day SOB POC%': 0,
+        'Mandays': 0, 'CPA': 0, 'Target-Booking%': '0%', 'Booking%': '0%', 'Target-POC%': '0%',
+        'POC%': '0%', 'Realization%': '0%', 'Productivity': 0, 'SOB Utilization%': 0, 'URN': 0, 'Status': 'Active'
     }
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     save_data(df)
@@ -154,6 +163,8 @@ def toggle_status(cz_id):
         return redirect(url_for('admin_login'))
     
     df = load_data()
+    df = df.loc[:, ~df.columns.duplicated()]
+    
     if cz_id in df['CZ ID'].values:
         idx = df[df['CZ ID'] == cz_id].index[0]
         curr = df.at[idx, 'Status']
