@@ -19,7 +19,6 @@ def load_data():
     except Exception as e:
         print("Auto-sync warning:", e)
 
-    # Aapke bataye gaye exact columns ki list
     desired_columns = [
         'CZ ID', 'Name', 'TL', 'MTD Aug', 'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%',  
         'Mandays', 'CPA', 'Target-Booking%', 'Booking%', 'Target-POC%', 
@@ -31,16 +30,13 @@ def load_data():
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
-        # 'MTD Trend' sheet se data read karne ki koshish karega
         df = pd.read_excel(EXCEL_FILE, sheet_name='MTD Trend', dtype={'CZ ID': str})
     except Exception:
-        # Agar sheet ka naam kuch aur ya pehli sheet ho, toh fallback karega
         df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
     
-    # Column names ki spelling ya extra spaces theek karne ke liye
-    df.columns = df.columns.str.strip()
+    # Column names ko string mein convert karein taaki float error na aaye
+    df.columns = [str(col).strip() for col in df.columns]
     
-    # Agar Excel me column name me thoda fark ho toh map kar dein
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower()
@@ -52,7 +48,6 @@ def load_data():
             rename_map[col] = 'TL'
     df = df.rename(columns=rename_map)
 
-    # Missing columns ko blank set karein
     for col in desired_columns:
         if col not in df.columns:
             df[col] = ''
@@ -63,7 +58,6 @@ def load_data():
         df[col] = df[col].fillna('')
         
     return df
-
 def save_data(df):
     df.to_excel(EXCEL_FILE, index=False)
 
