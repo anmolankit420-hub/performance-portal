@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 
 app = Flask(__name__)
 app.secret_key = 'asr_secret_key_12345'
@@ -113,10 +113,19 @@ def upload_excel():
             if os.path.exists(EXCEL_FILE):
                 os.remove(EXCEL_FILE)
             file.save(EXCEL_FILE)
+            flash('Excel file uploaded and data replaced successfully!', 'success')
             
     return redirect(url_for('admin_panel'))
 
-# --- NAYA: Add Agent Route ---
+# --- NAYA: Download / Export Excel Backup ---
+@app.route('/admin/download_excel')
+def download_excel():
+    if not session.get('admin_logged'):
+        return redirect(url_for('admin_login'))
+    if os.path.exists(EXCEL_FILE):
+        return send_file(EXCEL_FILE, as_attachment=True)
+    return redirect(url_for('admin_panel'))
+
 @app.route('/admin/add_agent', methods=['POST'])
 def add_agent():
     if not session.get('admin_logged'):
@@ -131,6 +140,7 @@ def add_agent():
     df = df.loc[:, ~df.columns.duplicated()]
     
     if cz_id in df['CZ ID'].values:
+        flash('CZ ID already exists!', 'error')
         return redirect(url_for('admin_panel'))
         
     new_row = {col: '' for col in df.columns}
@@ -142,9 +152,9 @@ def add_agent():
     
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     save_data(df)
+    flash(f'Agent {name} added successfully!', 'success')
     return redirect(url_for('admin_panel'))
 
-# --- NAYA: Delete Agent Route ---
 @app.route('/admin/delete_agent/<cz_id>', methods=['POST'])
 def delete_agent(cz_id):
     if not session.get('admin_logged'):
@@ -155,6 +165,7 @@ def delete_agent(cz_id):
     
     df = df[df['CZ ID'] != cz_id]
     save_data(df)
+    flash('Agent deleted successfully!', 'success')
     return redirect(url_for('admin_panel'))
 
 @app.route('/admin/toggle_status/<cz_id>', methods=['POST'])
@@ -168,8 +179,10 @@ def toggle_status(cz_id):
     if cz_id in df['CZ ID'].values:
         idx = df[df['CZ ID'] == cz_id].index[0]
         curr = str(df.at[idx, 'Status']).strip()
-        df.at[idx, 'Status'] = 'Inactive' if curr == 'Active' else 'Active'
+        new_status = 'Inactive' if curr == 'Active' else 'Active'
+        df.at[idx, 'Status'] = new_status
         save_data(df)
+        flash(f'Agent status changed to {new_status}!', 'success')
         
     return redirect(url_for('admin_panel'))
 
@@ -191,6 +204,7 @@ def edit_agent(cz_id):
             if col in request.form:
                 df.at[idx, col] = request.form.get(col)
         save_data(df)
+        flash('Agent performance updated successfully!', 'success')
         return redirect(url_for('admin_panel'))
         
     agent_data = agent.iloc[0].to_dict()
