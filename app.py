@@ -7,7 +7,6 @@ app.secret_key = 'asr_secret_key_12345'
 EXCEL_FILE = 'asr_tracker.xlsx'
 
 def get_initial_data():
-    # Aapke diye gaye data ki initial list
     initial_agents = [
         ("41368", "Anjali Kumari"), ("41414", "Shilpa Kumari"), ("44624", "Anita Kujur"),
         ("45466", "Laxmi Kumari"), ("45552", "Nisha Kumari"), ("45755", "Dimpy Kumari"),
@@ -84,7 +83,6 @@ def load_data():
 
     if not os.path.exists(EXCEL_FILE):
         df = pd.DataFrame(columns=desired_columns)
-        # Default data fill karein agar file nahi hai
         initial = get_initial_data()
         init_rows = []
         for cz, name in initial:
@@ -127,6 +125,7 @@ def load_data():
     df = df[desired_columns]
     for col in df.select_dtypes(include=['object']):
         df[col] = df[col].fillna('')
+        df[col] = df[col].replace('nan', '')
         
     return df
 
@@ -158,7 +157,7 @@ def check_performance():
 def admin_login():
     if request.method == 'POST':
         pwd = request.form.get('password')
-        if pwd == 'Anmol@9876#':  # Updated Password
+        if pwd == 'Anmol@9876#':
             session['admin_logged'] = True
             return redirect(url_for('admin_panel'))
         else:
@@ -177,7 +176,6 @@ def admin_panel():
     if search:
         df = df[df['CZ ID'].astype(str).str.contains(search, case=False, na=False) | df['Names'].astype(str).str.contains(search, case=False, na=False)]
     
-    # Active aur Inactive agents ki counting calculate karna
     total_active = len(df[df['Status'].str.strip().str.lower() == 'active'])
     total_inactive = len(df[df['Status'].str.strip().str.lower() == 'inactive'])
     
@@ -283,13 +281,18 @@ def edit_agent(cz_id):
         idx = df[df['CZ ID'] == cz_id].index[0]
         for col in df.columns:
             if col in request.form:
-                df.at[idx, col] = request.form.get(col)
+                val = request.form.get(col)
+                if val == 'nan' or not val:
+                    val = ''
+                df.at[idx, col] = val
         save_data(df)
         flash('Agent performance updated successfully!', 'success')
         return redirect(url_for('admin_panel'))
         
     agent_data = agent.iloc[0].to_dict()
-    return render_template('admin_edit.html', agent=agent_data)
+    cleaned_agent_data = {k: ('' if str(v).lower() == 'nan' else v) for k, v in agent_data.items()}
+    
+    return render_template('admin_edit.html', agent=cleaned_agent_data)
 
 @app.route('/admin/logout')
 def admin_logout():
