@@ -7,19 +7,18 @@ app = Flask(__name__)
 app.secret_key = 'asr_secret_key_12345'
 EXCEL_FILE = 'asr_tracker.xlsx'
 
-# Yahan apna OneDrive ka Direct Download Link daalein
+# Aapka OneDrive ka direct download link
 ONEDRIVE_DIRECT_URL = "https://interactaibpo1-my.sharepoint.com/:x:/g/personal/anmol_a_interactaibpo_com/IQDVzkSorGhRTKD0jp_J-T37AUAMg1-XGjG_evtfFZj5rhY?e=MZPo3q&download=1"
 
 def load_data():
     try:
-        response = requests.get(ONEDRIVE_DIRECT_URL, timeout=15)
+        response = requests.get(ONEDRIVE_DIRECT_URL, timeout=20)
         if response.status_code == 200:
             with open(EXCEL_FILE, 'wb') as f:
                 f.write(response.content)
     except Exception as e:
-        print("Auto-sync warning:", e)
+        print("OneDrive sync warning:", e)
 
-    # Aapke bataye gaye exact columns ki list
     desired_columns = [
         'CZ ID', 'Names', 'Shift', 'TL', 'QA', 'PIP', 'June', 'July', 'MTD Aug', 
         'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%', 'Mandays', 'CPA', 
@@ -36,10 +35,8 @@ def load_data():
     except Exception:
         df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
     
-    # Column names se extra spaces hataein aur string banayein
     df.columns = [str(col).strip() for col in df.columns]
     
-    # Column mapping taaki 'Name' ya 'Agent Name' aaye toh wo 'Names' ban jaye
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower()
@@ -51,7 +48,6 @@ def load_data():
             rename_map[col] = 'TL'
     df = df.rename(columns=rename_map)
 
-    # Jo columns missing hain unhe blank set karein
     for col in desired_columns:
         if col not in df.columns:
             df[col] = ''
@@ -74,8 +70,6 @@ def index():
 def check_performance():
     cz_id = request.form.get('cz_id', '').strip()
     df = load_data()
-    
-    # Duplicate columns hata dein taaki conflict na ho
     df = df.loc[:, ~df.columns.duplicated()]
     
     agent = df[df['CZ ID'] == cz_id]
@@ -132,50 +126,10 @@ def update_agent():
         save_data(df)
     return redirect(url_for('admin_panel'))
 
-@app.route('/admin/add_agent', methods=['POST'])
-def add_agent():
-    if not session.get('admin_logged'):
-        return redirect(url_for('admin_login'))
-    
-    cz_id = request.form.get('cz_id', '').strip()
-    name = request.form.get('name', '').strip()
-    tl = request.form.get('tl', 'Default TL').strip()
-    
-    df = load_data()
-    df = df.loc[:, ~df.columns.duplicated()]
-    
-    if cz_id in df['CZ ID'].values:
-        return redirect(url_for('admin_panel'))
-    
-    new_row = {
-        'CZ ID': cz_id, 'Names': name, 'Shift': 'General', 'TL': tl, 'QA': '', 'PIP': '',
-        'June': '', 'July': '', 'MTD Aug': 0, 'D-2': 0, 'D-1': 0, 'D-Day': 0, 'D-Day SOB POC%': 0,
-        'Mandays': 0, 'CPA': 0, 'Target-Booking%': '0%', 'Booking%': '0%', 'Target-POC%': '0%',
-        'POC%': '0%', 'Realization%': '0%', 'Productivity': 0, 'SOB Utilization%': 0, 'URN': 0, 'Status': 'Active'
-    }
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    save_data(df)
-    return redirect(url_for('admin_panel'))
-
-@app.route('/admin/toggle_status/<cz_id>', methods=['POST'])
-def toggle_status(cz_id):
-    if not session.get('admin_logged'):
-        return redirect(url_for('admin_login'))
-    
-    df = load_data()
-    df = df.loc[:, ~df.columns.duplicated()]
-    
-    if cz_id in df['CZ ID'].values:
-        idx = df[df['CZ ID'] == cz_id].index[0]
-        curr = df.at[idx, 'Status']
-        df.at[idx, 'Status'] = 'Inactive' if curr == 'Active' else 'Active'
-        save_data(df)
-    return redirect(url_for('admin_panel'))
-
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged', None)
     return redirect(url_for('index'))
 
-if __name__ == '__main__':
+if __name__ == 'main__':
     app.run(debug=True, port=5000)
