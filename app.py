@@ -43,7 +43,6 @@ def load_data():
         if col not in df.columns:
             df[col] = ''
             
-    # Default sabhi ko Active rakhein agar Status column khali ho
     if 'Status' in df.columns:
         df['Status'] = df['Status'].fillna('Active').replace('', 'Active')
 
@@ -60,7 +59,6 @@ def save_data(df):
 def index():
     return render_template('index.html')
 
-# Agent Login & Performance View
 @app.route('/check_performance', methods=['POST'])
 def check_performance():
     cz_id = request.form.get('cz_id', '').strip()
@@ -73,7 +71,6 @@ def check_performance():
     
     agent_data = agent.iloc[0].to_dict()
     
-    # Agar status Inactive hai toh access block kar do
     if str(agent_data.get('Status', 'Active')).strip().lower() == 'inactive':
         return render_template('index.html', warning="Your CZ ID is temporarily locked/inactive. Please contact the Administrator.")
         
@@ -90,7 +87,6 @@ def admin_login():
             return render_template('admin_login.html', error="Incorrect Password!")
     return render_template('admin_login.html')
 
-# Admin Panel: List all agents, upload new excel, search
 @app.route('/admin_panel', methods=['GET', 'POST'])
 def admin_panel():
     if not session.get('admin_logged'):
@@ -106,7 +102,6 @@ def admin_panel():
     agents = df.to_dict(orient='records')
     return render_template('admin_panel.html', agents=agents, search=search)
 
-# Admin: Upload new Excel (replaces old data)
 @app.route('/admin/upload_excel', methods=['POST'])
 def upload_excel():
     if not session.get('admin_logged'):
@@ -121,7 +116,47 @@ def upload_excel():
             
     return redirect(url_for('admin_panel'))
 
-# Admin: Toggle Status (Active / Inactive)
+# --- NAYA: Add Agent Route ---
+@app.route('/admin/add_agent', methods=['POST'])
+def add_agent():
+    if not session.get('admin_logged'):
+        return redirect(url_for('admin_login'))
+    
+    cz_id = request.form.get('cz_id', '').strip()
+    name = request.form.get('name', '').strip()
+    tl = request.form.get('tl', '').strip()
+    shift = request.form.get('shift', '').strip()
+    
+    df = load_data()
+    df = df.loc[:, ~df.columns.duplicated()]
+    
+    if cz_id in df['CZ ID'].values:
+        return redirect(url_for('admin_panel'))
+        
+    new_row = {col: '' for col in df.columns}
+    new_row['CZ ID'] = cz_id
+    new_row['Names'] = name
+    new_row['TL'] = tl
+    new_row['Shift'] = shift
+    new_row['Status'] = 'Active'
+    
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    save_data(df)
+    return redirect(url_for('admin_panel'))
+
+# --- NAYA: Delete Agent Route ---
+@app.route('/admin/delete_agent/<cz_id>', methods=['POST'])
+def delete_agent(cz_id):
+    if not session.get('admin_logged'):
+        return redirect(url_for('admin_login'))
+        
+    df = load_data()
+    df = df.loc[:, ~df.columns.duplicated()]
+    
+    df = df[df['CZ ID'] != cz_id]
+    save_data(df)
+    return redirect(url_for('admin_panel'))
+
 @app.route('/admin/toggle_status/<cz_id>', methods=['POST'])
 def toggle_status(cz_id):
     if not session.get('admin_logged'):
@@ -138,7 +173,6 @@ def toggle_status(cz_id):
         
     return redirect(url_for('admin_panel'))
 
-# Admin: View & Edit Specific Agent Profile/Performance
 @app.route('/admin/edit_agent/<cz_id>', methods=['GET', 'POST'])
 def edit_agent(cz_id):
     if not session.get('admin_logged'):
