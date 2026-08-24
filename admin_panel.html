@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Performance Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background-color: #0d0d0d; color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: #141414; border-bottom: 2px solid #ff6600; }
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .logo-box { background: #ff6600; color: #000; font-weight: 700; padding: 8px 14px; border-radius: 8px; font-size: 1.2rem; }
+        .logo-text { font-size: 1.3rem; font-weight: 600; color: #ff6600; }
+        .logout-btn { color: #ff4444; text-decoration: none; background: #222; padding: 8px 16px; border-radius: 6px; border: 1px solid #ff4444; }
+        .logout-btn:hover { background: #ff4444; color: #fff; }
+        .container { max-width: 1300px; margin: 30px auto; padding: 0 20px; width: 100%; flex: 1; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+        .top-bar h2 { color: #ff6600; }
+        .search-box input { padding: 10px 15px; background: #1a1a1a; border: 1px solid #444; border-radius: 6px; color: #fff; width: 250px; outline: none; }
+        .search-box input:focus { border-color: #ff6600; }
+        .add-card { background: #161616; border: 1px solid #333; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+        .add-card h3 { color: #ff6600; margin-bottom: 15px; font-size: 1.1rem; }
+        .add-form { display: flex; gap: 15px; flex-wrap: wrap; }
+        .add-form input { padding: 10px; background: #111; border: 1px solid #444; border-radius: 6px; color: #fff; flex: 1; min-width: 200px; outline: none; }
+        .add-form button { padding: 10px 20px; background: #ff6600; color: #000; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; }
+        .table-container { background: #141414; border: 1px solid #333; border-radius: 10px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid #222; }
+        th { background: #1a1a1a; color: #ff6600; font-weight: 600; }
+        tr:hover { background: #181818; }
+        .status-active { color: #4BB543; font-weight: 600; }
+        .status-inactive { color: #ff4444; font-weight: 600; }
+        .action-btn { padding: 6px 12px; border-radius: 4px; border: none; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
+        .btn-toggle { background: #333; color: #fff; }
+        .btn-toggle:hover { background: #555; }
+        footer { text-align: center; padding: 20px; background: #141414; color: #888; font-size: 0.9rem; border-top: 1px solid #222; }
+        footer span { color: #ff6600; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-area">
+            <div class="logo-box">IA</div>
+            <div class="logo-text">Performance Portal (Admin)</div>
+        </div>
+        <a href="/admin/logout" class="logout-btn">Logout</a>
+    </header>
+    <div class="container">
+        <div class="top-bar">
+            <h2>Agent Management Dashboard</h2>
+            <div class="search-box">
+                <form method="GET">
+                    <input type="text" name="search" value="{{ search }}" placeholder="Search by CZ ID or Name..." autocomplete="off">
+                </form>
+            </div>
+        </div>
+        <div class="add-card">
+            <h3>+ Add New Agent</h3>
+            <form action="/admin/add_agent" method="POST" class="add-form">
+                <input type="text" name="cz_id" placeholder="CZ ID (e.g. 41368)" required>
+                <input type="text" name="name" placeholder="Agent Name" required>
+                <input type="text" name="tl" placeholder="Team Leader Name" required>
+                <button type="submit">Add Agent</button>
+            </form>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>CZ ID</th>
+                        <th>Name</th>
+                        <th>Team Leader</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agent in agents %}
+                    <tr>
+                        <td>{{ agent['CZ ID'] }}</td>
+                        <td>{{ agent['Name'] }}</td>
+                        <td>{{ agent['TL'] }}</td>
+                        <td>
+                            <span class="{% if agent['Status'] == 'Inactive' %}status-inactive{% else %}status-active{% endif %}">
+                                {{ agent['Status'] if agent['Status'] else 'Active' }}
+                            </span>
+                        </td>
+                        <td>
+                            <form action="/admin/toggle_status/{{ agent['CZ ID'] }}" method="POST" style="display:inline;">
+                                <button type="submit" class="action-btn btn-toggle">
+                                    {% if agent['Status'] == 'Inactive' %}Activate{% else %}Deactivate{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #777;">No agents found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <footer>
+        Performance Portal &bull; Powered by <span>ASR</span>
+    </footer>
+</body>
+</html>
