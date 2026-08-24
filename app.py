@@ -21,14 +21,18 @@ def load_data():
 
     if not os.path.exists(EXCEL_FILE):
         df = pd.DataFrame(columns=[
-            'CZ ID', 'Name', 'TL', 'D-Day', 'D-1', 'MTD August', 'D-Day SOB POC%', 
-            'Mandays', 'CPA', 'Target Booking', 'Booking', 'Booking %', 
+            'CZ ID', 'Name', 'TL', 'D-Day', 'D-1', 'MTD August', 'D-Day SOB POC%',  
+            'Mandays', 'CPA', 'Target Booking', 'Booking', 'Booking %',  
             'Target POC%', 'POC', 'Realisation', 'Productivity', 'SOB Utilisation', 'URN', 'Status'
         ])
         df.to_excel(EXCEL_FILE, index=False)
         
     df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
-    df.fillna('', inplace=True)
+    
+    # Sirf text/object columns ko blank se fill karein taaki float columns crash na hon
+    for col in df.select_dtypes(include=['object']):
+        df[col] = df[col].fillna('')
+        
     return df
 
 def save_data(df):
