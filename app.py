@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
 
 app = Flask(__name__)
 app.secret_key = 'asr_secret_key_12345'
@@ -74,7 +74,7 @@ def get_initial_data():
     return initial_agents
 
 def load_data():
-    desired_columns = [
+    default_columns = [
         'CZ ID', 'Names', 'Shift', 'TL', 'QA', 'PIP', 'June', 'July', 'MTD Aug', 
         'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%', 'Mandays', 'CPA', 
         'Target-Booking%', 'Booking%', 'Target-POC%', 'POC%', 'Realization%', 
@@ -82,11 +82,11 @@ def load_data():
     ]
 
     if not os.path.exists(EXCEL_FILE):
-        df = pd.DataFrame(columns=desired_columns)
+        df = pd.DataFrame(columns=default_columns)
         initial = get_initial_data()
         init_rows = []
         for cz, name in initial:
-            row = {col: '' for col in desired_columns}
+            row = {col: '' for col in default_columns}
             row['CZ ID'] = cz
             row['Names'] = name
             row['Status'] = 'Active'
@@ -95,12 +95,15 @@ def load_data():
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
-        df = pd.read_excel(EXCEL_FILE, sheet_name='MTD Trend', dtype=str)
+        # Excel se sheet read karte waqt automatically headers fetch honge
+        df = pd.read_excel(EXCEL_FILE, sheet_name=0, dtype=str)
     except Exception:
         df = pd.read_excel(EXCEL_FILE, dtype=str)
     
+    # Strip spaces from column names
     df.columns = [str(col).strip() for col in df.columns]
     
+    # Normalize key column names if they vary slightly in casing/spelling
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower()
@@ -115,18 +118,18 @@ def load_data():
             
     df = df.rename(columns=rename_map)
 
-    for col in desired_columns:
+    # Ensure essential columns exist
+    for col in ['CZ ID', 'Names', 'Status']:
         if col not in df.columns:
             df[col] = ''
             
     if 'Status' in df.columns:
         df['Status'] = df['Status'].fillna('Active').replace('', 'Active')
 
-    df = df[desired_columns]
+    # Clean missing values and 'nan' strings
     for col in df.select_dtypes(include=['object']):
         df[col] = df[col].fillna('')
-        df[col] = df[col].replace('nan', '')
-        df[col] = df[col].replace('None', '')
+        df[col] = df[col].replace(['nan', 'None', 'NAN'], '')
         
     return df
 
@@ -143,7 +146,7 @@ def check_performance():
     df = load_data()
     df = df.loc[:, ~df.columns.duplicated()]
     
-    agent = df[df['CZ ID'] == cz_id]
+    agent = df[df['CZ ID'].astype(str).str.strip() == cz_id]
     if agent.empty:
         return render_template('index.html', error="Invalid CZ ID or Not Found.")
     
@@ -186,17 +189,20 @@ def admin_panel():
 @app.route('/admin/upload_excel', methods=['POST'])
 def upload_excel():
     if not session.get('admin_logged'):
-        return redirect(url_for('admin_login'))
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     if 'excel_file' in request.files:
         file = request.files['excel_file']
         if file.filename != '':
-            if os.path.exists(EXCEL_FILE):
-                os.remove(EXCEL_FILE)
-            file.save(EXCEL_FILE)
-            flash('Excel file uploaded and data replaced successfully!', 'success')
-            
-    return redirect(url_for('admin_panel'))
+            try:
+                if os.path.exists(EXCEL_FILE):
+                    os.remove(EXCEL_FILE)
+                file.save(EXCEL_FILE)
+                return jsonify({'success': True, 'message': 'Excel uploaded successfully!'})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+                
+    return jsonify({'success': False, 'error': 'No file selected'}), 400
 
 @app.route('/admin/download_excel')
 def download_excel():
@@ -219,15 +225,15 @@ def add_agent():
     df = load_data()
     df = df.loc[:, ~df.columns.duplicated()]
     
-    if cz_id in df['CZ ID'].values:
+    if cz_id in df['CZ ID'].astype(str).values:
         flash('CZ ID already exists!', 'error')
         return redirect(url_for('admin_panel'))
         
     new_row = {col: '' for col in df.columns}
     new_row['CZ ID'] = cz_id
     new_row['Names'] = name
-    new_row['TL'] = tl
-    new_row['Shift'] = shift
+    if 'TL' in df.columns: new_row['TL'] = tl
+    if 'Shift' in df.columns: new_row['Shift'] = shift
     new_row['Status'] = 'Active'
     
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -243,7 +249,7 @@ def delete_agent(cz_id):
     df = load_data()
     df = df.loc[:, ~df.columns.duplicated()]
     
-    df = df[df['CZ ID'] != cz_id]
+    df = df[df['CZ ID'].astype(str) != str(cz_id)]
     save_data(df)
     flash('Agent deleted successfully!', 'success')
     return redirect(url_for('admin_panel'))
@@ -256,10 +262,11 @@ def toggle_status(cz_id):
     df = load_data()
     df = df.loc[:, ~df.columns.duplicated()]
     
-    if cz_id in df['CZ ID'].values:
-        idx = df[df['CZ ID'] == cz_id].index[0]
+    matches = df[df['CZ ID'].astype(str) == str(cz_id)]
+    if not matches.empty:
+        idx = matches.index[0]
         curr = str(df.at[idx, 'Status']).strip()
-        new_status = 'Inactive' if curr == 'Active' else 'Active'
+        new_status = 'Inactive' if curr.lower() == 'active' else 'Active'
         df.at[idx, 'Status'] = new_status
         save_data(df)
         flash(f'Agent status changed to {new_status}!', 'success')
@@ -274,16 +281,16 @@ def edit_agent(cz_id):
     df = load_data()
     df = df.loc[:, ~df.columns.duplicated()]
     
-    agent = df[df['CZ ID'] == cz_id]
+    agent = df[df['CZ ID'].astype(str) == str(cz_id)]
     if agent.empty:
         return redirect(url_for('admin_panel'))
     
     if request.method == 'POST':
-        idx = df[df['CZ ID'] == cz_id].index[0]
+        idx = agent.index[0]
         for col in df.columns:
             if col in request.form:
                 val = request.form.get(col)
-                if val == 'nan' or val is None:
+                if val in ['nan', 'None', None]:
                     val = ''
                 df.loc[idx, col] = str(val)
         save_data(df)
