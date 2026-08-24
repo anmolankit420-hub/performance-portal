@@ -19,28 +19,46 @@ def load_data():
     except Exception as e:
         print("Auto-sync warning:", e)
 
-    # Jo columns aapko chahiye, unki exact list yahan define hai
+    # Aapke bataye gaye exact columns ki list
     desired_columns = [
-        'CZ ID', 'Name', 'TL', 'D-Day', 'D-1', 'MTD August', 'D-Day SOB POC%',  
-        'Mandays', 'CPA', 'Target Booking%', 'Booking%', 'Target POC%', 
-        'POC', 'Realisation', 'Productivity', 'SOB Utilisation', 'URN', 'Status'
+        'CZ ID', 'Name', 'TL', 'MTD Aug', 'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%',  
+        'Mandays', 'CPA', 'Target-Booking%', 'Booking%', 'Target-POC%', 
+        'POC%_', 'Realization%', 'Productivity', 'SOB Utilization%', 'URN'
     ]
 
     if not os.path.exists(EXCEL_FILE):
         df = pd.DataFrame(columns=desired_columns)
         df.to_excel(EXCEL_FILE, index=False)
         
-    df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
+    try:
+        # 'MTD Trend' sheet se data read karne ki koshish karega
+        df = pd.read_excel(EXCEL_FILE, sheet_name='MTD Trend', dtype={'CZ ID': str})
+    except Exception:
+        # Agar sheet ka naam kuch aur ya pehli sheet ho, toh fallback karega
+        df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
     
-    # Agar Excel file me koi missing column ho jo list me hai, toh use blank/empty bana dega
+    # Column names ki spelling ya extra spaces theek karne ke liye
+    df.columns = df.columns.str.strip()
+    
+    # Agar Excel me column name me thoda fark ho toh map kar dein
+    rename_map = {}
+    for col in df.columns:
+        col_lower = col.lower()
+        if 'name' in col_lower and 'agent' not in col_lower and col != 'Name':
+            rename_map[col] = 'Name'
+        elif 'cz' in col_lower and col != 'CZ ID':
+            rename_map[col] = 'CZ ID'
+        elif 'tl' in col_lower and col != 'TL':
+            rename_map[col] = 'TL'
+    df = df.rename(columns=rename_map)
+
+    # Missing columns ko blank set karein
     for col in desired_columns:
         if col not in df.columns:
             df[col] = ''
 
-    # Sirf wahi columns rakhenge jo aapne maange hain (extra columns remove ho jayenge)
     df = df[desired_columns]
     
-    # Text/object columns ko blank se fill karein taaki float error na aaye
     for col in df.select_dtypes(include=['object']):
         df[col] = df[col].fillna('')
         
