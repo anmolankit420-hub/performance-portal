@@ -1,11 +1,42 @@
-<!-- Excel Upload Section -->
-<div style="background: #222; padding: 20px; margin-bottom: 20px; border-radius: 8px; color: white;">
-    <h3>Upload Master Excel Data</h3>
-    <form action="/admin/upload_excel" method="POST" enctype="multipart/form-data">
-        <input type="file" name="excel_file" accept=".xlsx, .xls" required style="margin-bottom: 10px; color: white;">
-        <br>
-        <button type="submit" style="background: #ff7b00; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Upload & Replace Data</button>
-    </form>
+<!-- Flash Messages / Notifications -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div style="margin-bottom: 20px;">
+      {% for category, message in messages %}
+        <div style="padding: 10px; background: {% if category == 'success' %}#28a745{% else %}#dc3545{% endif %}; color: white; border-radius: 4px; margin-bottom: 5px;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- Active & Inactive Status Count Dashboard -->
+<div style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <div style="background: #28a745; color: white; padding: 15px 25px; border-radius: 8px; flex: 1; text-align: center;">
+        <h3 style="margin: 0; font-size: 16px;">Active Agents</h3>
+        <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold;">{{ total_active }}</p>
+    </div>
+    <div style="background: #dc3545; color: white; padding: 15px 25px; border-radius: 8px; flex: 1; text-align: center;">
+        <h3 style="margin: 0; font-size: 16px;">Inactive Agents</h3>
+        <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold;">{{ total_inactive }}</p>
+    </div>
+</div>
+
+<!-- Excel Upload & Download Backup Section -->
+<div style="background: #222; padding: 20px; margin-bottom: 20px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+    <div>
+        <h3>Upload Master Excel Data</h3>
+        <form action="/admin/upload_excel" method="POST" enctype="multipart/form-data">
+            <input type="file" name="excel_file" accept=".xlsx, .xls" required style="margin-bottom: 10px; color: white;">
+            <br>
+            <button type="submit" style="background: #ff7b00; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Upload & Replace Data</button>
+        </form>
+    </div>
+    <div style="margin-top: 10px;">
+        <h3>Download Backup</h3>
+        <a href="/admin/download_excel" style="background: #17a2b8; color: white; padding: 10px 15px; border-radius: 4px; text-decoration: none; display: inline-block;">Download Current Excel</a>
+    </div>
 </div>
 
 <!-- Add New Agent Section -->
