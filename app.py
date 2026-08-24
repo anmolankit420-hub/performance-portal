@@ -95,9 +95,10 @@ def load_data():
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
-        df = pd.read_excel(EXCEL_FILE, sheet_name='MTD Trend', dtype={'CZ ID': str})
+        # dtype=str rakhne se excel ke percentages/decimals apni exact string form mein read hote hain bina round-off ya float conversion ke
+        df = pd.read_excel(EXCEL_FILE, sheet_name='MTD Trend', dtype=str)
     except Exception:
-        df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
+        df = pd.read_excel(EXCEL_FILE, dtype=str)
     
     df.columns = [str(col).strip() for col in df.columns]
     
@@ -126,6 +127,7 @@ def load_data():
     for col in df.select_dtypes(include=['object']):
         df[col] = df[col].fillna('')
         df[col] = df[col].replace('nan', '')
+        df[col] = df[col].replace('None', '')
         
     return df
 
@@ -282,15 +284,15 @@ def edit_agent(cz_id):
         for col in df.columns:
             if col in request.form:
                 val = request.form.get(col)
-                if val == 'nan' or not val:
+                if val == 'nan' or val is None:
                     val = ''
-                df.at[idx, col] = val
+                df.loc[idx, col] = str(val)
         save_data(df)
         flash('Agent performance updated successfully!', 'success')
         return redirect(url_for('admin_panel'))
         
     agent_data = agent.iloc[0].to_dict()
-    cleaned_agent_data = {k: ('' if str(v).lower() == 'nan' else v) for k, v in agent_data.items()}
+    cleaned_agent_data = {k: ('' if str(v).lower() in ['nan', 'none'] else v) for k, v in agent_data.items()}
     
     return render_template('admin_edit.html', agent=cleaned_agent_data)
 
