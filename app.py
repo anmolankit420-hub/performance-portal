@@ -8,7 +8,7 @@ app.secret_key = 'asr_secret_key_12345'
 EXCEL_FILE = 'asr_tracker.xlsx'
 
 # Yahan apna OneDrive ka Direct Download Link daalein
-ONEDRIVE_DIRECT_URL = "https://interactaibpo1-my.sharepoint.com/:x:/r/personal/anmol_a_interactaibpo_com/_layouts/15/Doc.aspx?sourcedoc=%7BA844CED5-68AC-4C51-A0F4-8E9FC9F93DFB%7D&file=ASR%20Realtime%20SOB%20Tracker.xlsx&action=default&mobileredirect=true&wdOrigin=OUTLOOK-METAOS.FILEBROWSER"
+ONEDRIVE_DIRECT_URL = "https://interactaibpo1-my.sharepoint.com/:x:/g/personal/anmol_a_interactaibpo_com/IQDVzkSorGhRTKD0jp_J-T37AUAMg1-XGjG_evtfFZj5rhY?e=MZPo3q&download=1"
 
 def load_data():
     try:
