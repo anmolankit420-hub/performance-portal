@@ -19,17 +19,28 @@ def load_data():
     except Exception as e:
         print("Auto-sync warning:", e)
 
+    # Jo columns aapko chahiye, unki exact list yahan define hai
+    desired_columns = [
+        'CZ ID', 'Name', 'TL', 'D-Day', 'D-1', 'MTD August', 'D-Day SOB POC%',  
+        'Mandays', 'CPA', 'Target Booking%', 'Booking%', 'Target POC%', 
+        'POC', 'Realisation', 'Productivity', 'SOB Utilisation', 'URN', 'Status'
+    ]
+
     if not os.path.exists(EXCEL_FILE):
-        df = pd.DataFrame(columns=[
-            'CZ ID', 'Name', 'TL', 'D-Day', 'D-1', 'MTD August', 'D-Day SOB POC%',  
-            'Mandays', 'CPA', 'Target Booking', 'Booking', 'Booking %',  
-            'Target POC%', 'POC', 'Realisation', 'Productivity', 'SOB Utilisation', 'URN', 'Status'
-        ])
+        df = pd.DataFrame(columns=desired_columns)
         df.to_excel(EXCEL_FILE, index=False)
         
-    # Memory bachane ke liye low_memory=False use karein
-    df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str}, low_memory=False)
+    df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
     
+    # Agar Excel file me koi missing column ho jo list me hai, toh use blank/empty bana dega
+    for col in desired_columns:
+        if col not in df.columns:
+            df[col] = ''
+
+    # Sirf wahi columns rakhenge jo aapne maange hain (extra columns remove ho jayenge)
+    df = df[desired_columns]
+    
+    # Text/object columns ko blank se fill karein taaki float error na aaye
     for col in df.select_dtypes(include=['object']):
         df[col] = df[col].fillna('')
         
