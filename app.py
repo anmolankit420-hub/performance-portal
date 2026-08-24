@@ -19,10 +19,12 @@ def load_data():
     except Exception as e:
         print("Auto-sync warning:", e)
 
+    # Bina comma wala exact column name yahan set hai
     desired_columns = [
-        'CZ ID', 'Name', 'TL', 'MTD Aug', 'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%',  
-        'Mandays', 'CPA', 'Target-Booking%', 'Booking%', 'Target-POC%', 
-        'POC%_', 'Realization%', 'Productivity', 'SOB Utilization%', 'URN'
+        'CZ ID', 'Names', 'Shift', 'TL', 'QA', 'PIP', 'June', 'July', 'MTD Aug', 
+        'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%', 'Mandays', 'CPA', 
+        'Target-Booking%', 'Booking%', 'Target-POC%', 'POC%', 'Realization%', 
+        'Productivity', 'SOB Utilization%', 'URN'
     ]
 
     if not os.path.exists(EXCEL_FILE):
@@ -34,20 +36,21 @@ def load_data():
     except Exception:
         df = pd.read_excel(EXCEL_FILE, dtype={'CZ ID': str})
     
-    # Column names ko string mein convert karein taaki float error na aaye
+    # Column names se extra spaces hataein aur string banayein
     df.columns = [str(col).strip() for col in df.columns]
     
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower()
-        if 'name' in col_lower and 'agent' not in col_lower and col != 'Name':
-            rename_map[col] = 'Name'
+        if col_lower in ['name', 'agent name', 'agent_name'] and 'Names' in desired_columns:
+            rename_map[col] = 'Names'
         elif 'cz' in col_lower and col != 'CZ ID':
             rename_map[col] = 'CZ ID'
         elif 'tl' in col_lower and col != 'TL':
             rename_map[col] = 'TL'
     df = df.rename(columns=rename_map)
 
+    # Jo columns missing hain unhe blank set karein
     for col in desired_columns:
         if col not in df.columns:
             df[col] = ''
