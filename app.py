@@ -1,24 +1,12 @@
 import os
 import pandas as pd
-import requests
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
 app.secret_key = 'asr_secret_key_12345'
 EXCEL_FILE = 'asr_tracker.xlsx'
 
-# Aapka OneDrive ka direct download link
-ONEDRIVE_DIRECT_URL = "https://interactaibpo1-my.sharepoint.com/:x:/g/personal/anmol_a_interactaibpo_com/IQDVzkSorGhRTKD0jp_J-T37AUAMg1-XGjG_evtfFZj5rhY?e=MZPo3q&download=1"
-
 def load_data():
-    try:
-        response = requests.get(ONEDRIVE_DIRECT_URL, timeout=20)
-        if response.status_code == 200:
-            with open(EXCEL_FILE, 'wb') as f:
-                f.write(response.content)
-    except Exception as e:
-        print("OneDrive sync warning:", e)
-
     desired_columns = [
         'CZ ID', 'Names', 'Shift', 'TL', 'QA', 'PIP', 'June', 'July', 'MTD Aug', 
         'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%', 'Mandays', 'CPA', 
@@ -53,7 +41,6 @@ def load_data():
             df[col] = ''
 
     df = df[desired_columns]
-    
     for col in df.select_dtypes(include=['object']):
         df[col] = df[col].fillna('')
         
@@ -66,6 +53,7 @@ def save_data(df):
 def index():
     return render_template('index.html')
 
+# Agent Portal View
 @app.route('/check_performance', methods=['POST'])
 def check_performance():
     cz_id = request.form.get('cz_id', '').strip()
@@ -94,6 +82,7 @@ def admin_login():
             return render_template('admin_login.html', error="Incorrect Password!")
     return render_template('admin_login.html')
 
+# Admin Panel: List agents, search, and upload excel option
 @app.route('/admin_panel', methods=['GET', 'POST'])
 def admin_panel():
     if not session.get('admin_logged'):
@@ -109,27 +98,50 @@ def admin_panel():
     agents = df.to_dict(orient='records')
     return render_template('admin_panel.html', agents=agents, search=search)
 
-@app.route('/admin/update_agent', methods=['POST'])
-def update_agent():
+# Admin: Upload new Excel (replaces old data completely)
+@app.route('/admin/upload_excel', methods=['POST'])
+def upload_excel():
     if not session.get('admin_logged'):
         return redirect(url_for('admin_login'))
     
-    cz_id = request.form.get('cz_id')
+    if 'excel_file' in request.files:
+        file = request.files['excel_file']
+        if file.filename != '':
+            # Purani file delete karke nayi save karna
+            if os.path.exists(EXCEL_FILE):
+                os.remove(EXCEL_FILE)
+            file.save(EXCEL_FILE)
+            
+    return redirect(url_for('admin_panel'))
+
+# Admin: View/Edit Specific Agent Performance by CZ ID
+@app.route('/admin/edit_agent/<cz_id>', methods=['GET', 'POST'])
+def edit_agent(cz_id):
+    if not session.get('admin_logged'):
+        return redirect(url_for('admin_login'))
+    
     df = load_data()
     df = df.loc[:, ~df.columns.duplicated()]
     
-    if cz_id in df['CZ ID'].values:
+    agent = df[df['CZ ID'] == cz_id]
+    if agent.empty:
+        return redirect(url_for('admin_panel'))
+    
+    if request.method == 'POST':
         idx = df[df['CZ ID'] == cz_id].index[0]
         for col in df.columns:
-            if col != 'CZ ID' and col in request.form:
+            if col in request.form:
                 df.at[idx, col] = request.form.get(col)
         save_data(df)
-    return redirect(url_for('admin_panel'))
+        return redirect(url_for('admin_panel'))
+        
+    agent_data = agent.iloc[0].to_dict()
+    return render_template('admin_edit.html', agent=agent_data)
 
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged', None)
     return redirect(url_for('index'))
 
-if __name__ == 'main__':
+if __name__ == '__main__':
     app.run(debug=True, port=5000)
