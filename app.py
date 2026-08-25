@@ -122,9 +122,13 @@ def admin_panel():
     total_active = len(df[df['Status'].str.strip().str.lower() == 'active'])
     total_inactive = len(df[df['Status'].str.strip().str.lower() == 'inactive'])
     
+    # फाइल की जानकारी चेक करने के लिए
+    file_exists = os.path.exists(EXCEL_FILE)
+    file_name = EXCEL_FILE if file_exists else None
+    
     columns = list(df.columns)
     agents = df.to_dict(orient='records')
-    return render_template('admin_panel.html', agents=agents, columns=columns, search=search, total_active=total_active, total_inactive=total_inactive)
+    return render_template('admin_panel.html', agents=agents, columns=columns, search=search, total_active=total_active, total_inactive=total_inactive, file_exists=file_exists, file_name=file_name)
 
 @app.route('/admin/upload_excel', methods=['POST'])
 def upload_excel():
@@ -136,11 +140,27 @@ def upload_excel():
         if file.filename != '':
             try:
                 file.save(EXCEL_FILE)
-                return jsonify({'success': True, 'message': 'Excel uploaded and read successfully!'})
+                return jsonify({'success': True, 'message': 'Excel uploaded successfully!'})
             except Exception as e:
                 return jsonify({'success': False, 'error': str(e)}), 500
                 
     return jsonify({'success': False, 'error': 'No file selected'}), 400
+
+@app.route('/admin/delete_excel', methods=['POST'])
+def delete_excel():
+    if not session.get('admin_logged'):
+        return redirect(url_for('admin_login'))
+    
+    if os.path.exists(EXCEL_FILE):
+        try:
+            os.remove(EXCEL_FILE)
+            flash('Current Excel file deleted successfully!', 'success')
+        except Exception as e:
+            flash(f'Error deleting file: {e}', 'error')
+    else:
+        flash('No file found to delete!', 'error')
+        
+    return redirect(url_for('admin_panel'))
 
 @app.route('/admin/download_excel')
 def download_excel():
@@ -191,7 +211,7 @@ def delete_agent(cz_id):
     flash('Agent deleted successfully!', 'success')
     return redirect(url_for('admin_panel'))
 
-@app.route('/admin/toggle_status/<cz_id>', methods=['POST'])  # <-- यहाँ 'Methods' को 'methods' कर दिया गया है
+@app.route('/admin/toggle_status/<cz_id>', methods=['POST'])
 def toggle_status(cz_id):
     if not session.get('admin_logged'):
         return redirect(url_for('admin_login'))
