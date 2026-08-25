@@ -11,7 +11,7 @@ SHEET_NAME = 'ASR Project Tracking System'
 def load_data():
     if os.path.exists(EXCEL_FILE):
         try:
-            # Exact sheet name ke sath excel read karein
+            # Excel file aur exact sheet name read karein
             df = pd.read_excel(EXCEL_FILE, sheet_name=SHEET_NAME)
             df.columns = df.columns.str.strip()
             df = df.fillna('')
@@ -40,7 +40,6 @@ def admin_panel():
     if search_query:
         agents = [a for a in agents if search_query in str(a.get('CZ ID', '')).lower() or search_query in str(a.get('Name', '')).lower()]
     
-    # Active aur Inactive count (agar Status column nahi hai toh sab active rahenge)
     total_active = sum(1 for a in agents if str(a.get('Status', '')).strip().lower() != 'inactive')
     total_inactive = sum(1 for a in agents if str(a.get('Status', '')).strip().lower() == 'inactive')
     
@@ -117,5 +116,7 @@ def download_excel():
         flash('No Excel file available for download.', 'error')
         return redirect(url_for('admin_panel'))
 
+# Render aur Localhost dono ke liye port configuration
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
