@@ -18,7 +18,6 @@ def load_data():
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
-        # Pehle bina header ke read karke check karte hain ki 'CZ ID' ya 'Names' kis row mein hai
         temp_df = pd.read_excel(EXCEL_FILE, sheet_name=0, header=None, dtype=str)
         header_row = 0
         
@@ -28,16 +27,13 @@ def load_data():
                 header_row = idx
                 break
                 
-        # Ab sahi header row ke sath dataframe load karo
         df = pd.read_excel(EXCEL_FILE, sheet_name=0, header=header_row, dtype=str)
     except Exception as e:
         print(f"Error reading excel: {e}")
         df = pd.DataFrame(columns=['CZ ID', 'Names', 'Status'])
     
-    # Strip spaces from column headers
     df.columns = [str(col).strip() for col in df.columns if str(col).strip() != 'nan']
     
-    # Flexible column mapping
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower().replace('_', ' ').strip()
@@ -57,7 +53,6 @@ def load_data():
             
     df = df.rename(columns=rename_map)
 
-    # Ensure essential columns exist
     for col in ['CZ ID', 'Names', 'Status']:
         if col not in df.columns:
             df[col] = ''
@@ -65,11 +60,9 @@ def load_data():
     if 'Status' in df.columns:
         df['Status'] = df['Status'].fillna('Active').replace('', 'Active')
 
-    # Clean up NaN / None values to empty strings
     for col in df.columns:
         df[col] = df[col].fillna('').astype(str).replace(['nan', 'None', 'NAN', '<NA>'], '')
         
-    # Drop empty rows where CZ ID is missing
     df = df[df['CZ ID'].str.strip() != '']
         
     return df
