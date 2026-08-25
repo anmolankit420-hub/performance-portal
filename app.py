@@ -8,11 +8,16 @@ EXCEL_FILE = 'asr_tracker.xlsx'
 
 def load_data():
     if not os.path.exists(EXCEL_FILE):
-        df = pd.DataFrame(columns=['CZ ID', 'Names', 'Shift', 'TL', 'QA', 'Status'])
+        df = pd.DataFrame(columns=[
+            'CZ ID', 'Names', 'Shift', 'TL', 'QA', 'PIP', 'June', 'July', 'MTD Aug', 
+            'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%', 'Mandays', 'CPA', 
+            'Target-Booking%', 'Booking%', 'Target-POC%', 'POC%', 'Realization%', 
+            'Productivity', 'SOB Utilization%', 'URN', 'Status'
+        ])
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
-        # dtype=str se Excel ki saari values exact raw string read hongi
+        # dtype=str se excel ki har value exact read hogi bina kisi automatic formatting/rounding ke
         df = pd.read_excel(EXCEL_FILE, sheet_name=0, dtype=str)
     except Exception:
         df = pd.read_excel(EXCEL_FILE, dtype=str)
@@ -20,7 +25,7 @@ def load_data():
     # Strip spaces from column headers
     df.columns = [str(col).strip() for col in df.columns]
     
-    # Flexible renaming taaki Excel ke original headers safe rahein par standard keys bhi mil jayein
+    # Smart Mapping taaki Excel ke headers chahe jo bhi hon, code unhe standard keys par map kar de
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower().replace('_', ' ').strip()
@@ -37,6 +42,14 @@ def load_data():
             rename_map[col] = 'Shift'
         elif col_lower in ['status', 'state']:
             rename_map[col] = 'Status'
+        elif 'd day sob' in col_lower or 'd-day sob' in col_lower:
+            rename_map[col] = 'D-Day SOB POC%'
+        elif col_lower == 'd-day':
+            rename_map[col] = 'D-Day'
+        elif col_lower == 'd-1':
+            rename_map[col] = 'D-1'
+        elif col_lower == 'd-2':
+            rename_map[col] = 'D-2'
             
     df = df.rename(columns=rename_map)
 
