@@ -191,7 +191,7 @@ def delete_agent(cz_id):
     flash('Agent deleted successfully!', 'success')
     return redirect(url_for('admin_panel'))
 
-@app.route('/admin/toggle_status/<cz_id>', Methods=['POST'])
+@app.route('/admin/toggle_status/<cz_id>', methods=['POST'])  # <-- यहाँ 'Methods' को 'methods' कर दिया गया है
 def toggle_status(cz_id):
     if not session.get('admin_logged'):
         return redirect(url_for('admin_login'))
