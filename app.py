@@ -9,6 +9,7 @@ ADMIN_PASSWORD = 'Anmol@9876#'
 
 def load_data():
     if not os.path.exists(EXCEL_FILE):
+        print("Excel file not found. Creating a new sample file...")
         df = pd.DataFrame(columns=[
             'CZ ID', 'Names', 'Shift', 'TL', 'QA', 'PIP', 'June', 'July', 'MTD Aug', 
             'D-2', 'D-1', 'D-Day', 'D-Day SOB POC%', 'Mandays', 'CPA', 
@@ -19,17 +20,19 @@ def load_data():
         
     try:
         temp_df = pd.read_excel(EXCEL_FILE, sheet_name=0, header=None, dtype=str)
+        print(f"Excel successfully opened. Total rows found: {len(temp_df)}")
         header_row = 0
         
         for idx, row in temp_df.iterrows():
             row_str = ' '.join(row.astype(str).values).lower()
             if 'cz' in row_str and 'id' in row_str:
                 header_row = idx
+                print(f"Header row detected at index: {header_row}")
                 break
                 
         df = pd.read_excel(EXCEL_FILE, sheet_name=0, header=header_row, dtype=str)
     except Exception as e:
-        print(f"Error reading excel: {e}")
+        print(f"CRITICAL ERROR reading excel: {e}")
         df = pd.DataFrame(columns=['CZ ID', 'Names', 'Status'])
     
     df.columns = [str(col).strip() for col in df.columns if str(col).strip() != 'nan']
@@ -64,7 +67,7 @@ def load_data():
         df[col] = df[col].fillna('').astype(str).replace(['nan', 'None', 'NAN', '<NA>'], '')
         
     df = df[df['CZ ID'].str.strip() != '']
-        
+    print(f"Data loaded successfully. Total active agent rows: {len(df)}")
     return df
 
 def save_data(df):
@@ -188,7 +191,7 @@ def delete_agent(cz_id):
     flash('Agent deleted successfully!', 'success')
     return redirect(url_for('admin_panel'))
 
-@app.route('/admin/toggle_status/<cz_id>', methods=['POST'])
+@app.route('/admin/toggle_status/<cz_id>', Methods=['POST'])
 def toggle_status(cz_id):
     if not session.get('admin_logged'):
         return redirect(url_for('admin_login'))
