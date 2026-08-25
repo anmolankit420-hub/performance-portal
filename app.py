@@ -18,15 +18,26 @@ def load_data():
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
-        # dtype=str se excel ki har value exact read hogi bina kisi automatic formatting/rounding ke
-        df = pd.read_excel(EXCEL_FILE, sheet_name=0, dtype=str)
-    except Exception:
-        df = pd.read_excel(EXCEL_FILE, dtype=str)
+        # Pehle bina header ke read karke check karte hain ki 'CZ ID' ya 'Names' kis row mein hai
+        temp_df = pd.read_excel(EXCEL_FILE, sheet_name=0, header=None, dtype=str)
+        header_row = 0
+        
+        for idx, row in temp_df.iterrows():
+            row_str = ' '.join(row.astype(str).values).lower()
+            if 'cz' in row_str and 'id' in row_str:
+                header_row = idx
+                break
+                
+        # Ab sahi header row ke sath dataframe load karo
+        df = pd.read_excel(EXCEL_FILE, sheet_name=0, header=header_row, dtype=str)
+    except Exception as e:
+        print(f"Error reading excel: {e}")
+        df = pd.DataFrame(columns=['CZ ID', 'Names', 'Status'])
     
     # Strip spaces from column headers
-    df.columns = [str(col).strip() for col in df.columns]
+    df.columns = [str(col).strip() for col in df.columns if str(col).strip() != 'nan']
     
-    # Smart Mapping taaki Excel ke headers chahe jo bhi hon, code unhe standard keys par map kar de
+    # Flexible column mapping
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower().replace('_', ' ').strip()
@@ -43,14 +54,6 @@ def load_data():
             rename_map[col] = 'Shift'
         elif col_lower in ['status', 'state']:
             rename_map[col] = 'Status'
-        elif 'd day sob' in col_lower or 'd-day sob' in col_lower:
-            rename_map[col] = 'D-Day SOB POC%'
-        elif col_lower == 'd-day':
-            rename_map[col] = 'D-Day'
-        elif col_lower == 'd-1':
-            rename_map[col] = 'D-1'
-        elif col_lower == 'd-2':
-            rename_map[col] = 'D-2'
             
     df = df.rename(columns=rename_map)
 
@@ -62,9 +65,12 @@ def load_data():
     if 'Status' in df.columns:
         df['Status'] = df['Status'].fillna('Active').replace('', 'Active')
 
-    # Fill NaN values with empty string safely without altering raw text/numbers
+    # Clean up NaN / None values to empty strings
     for col in df.columns:
-        df[col] = df[col].fillna('').astype(str).replace(['nan', 'None', 'NAN'], '')
+        df[col] = df[col].fillna('').astype(str).replace(['nan', 'None', 'NAN', '<NA>'], '')
+        
+    # Drop empty rows where CZ ID is missing
+    df = df[df['CZ ID'].str.strip() != '']
         
     return df
 
@@ -133,10 +139,8 @@ def upload_excel():
         file = request.files['excel_file']
         if file.filename != '':
             try:
-                if os.path.exists(EXCEL_FILE):
-                    os.remove(EXCEL_FILE)
                 file.save(EXCEL_FILE)
-                return jsonify({'success': True, 'message': 'Excel uploaded successfully!'})
+                return jsonify({'success': True, 'message': 'Excel uploaded and read successfully!'})
             except Exception as e:
                 return jsonify({'success': False, 'error': str(e)}), 500
                 
