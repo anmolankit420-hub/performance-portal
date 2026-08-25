@@ -281,7 +281,7 @@
 
     <!-- Action Section: Excel Upload & Manual Add -->
     <div class="action-section">
-        <!-- Excel Upload, Management & Download Card -->
+        <!-- Excel Upload Card -->
         <div class="card">
             <h3>Master Excel Management</h3>
             
@@ -297,8 +297,8 @@
                 </div>
                 <div>
                     {% if file_exists %}
-                    <form action="/admin/delete_excel" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete the current excel file? This will clear database records.');">
-                        <button type="submit" class="btn-danger">Delete & Replace File</button>
+                    <form action="/admin/delete_excel" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete the current excel file?');">
+                        <button type="submit" class="btn-danger">Delete File</button>
                     </form>
                     {% endif %}
                 </div>
@@ -412,7 +412,7 @@
     </div>
 </div>
 
-<!-- Upload Progress Loader Overlay -->
+<!-- Upload Loader -->
 <div id="uploadLoader">
     <div style="max-width: 400px; margin: 0 auto; background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.8); border: 1px solid #333;">
         <h3 style="margin-bottom: 10px; color: #ff7b00;">Uploading & Processing Excel...</h3>
@@ -423,11 +423,9 @@
     </div>
 </div>
 
-<!-- Fast AJAX Upload Script -->
 <script>
 function uploadExcelFile(event) {
     event.preventDefault();
-    
     document.getElementById('uploadLoader').style.display = 'block';
     
     let fileInput = document.getElementById('excelFile');
