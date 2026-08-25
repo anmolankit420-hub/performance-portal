@@ -95,7 +95,7 @@ def load_data():
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
-        # dtype=str use kiya hai taaki excel ka data exact string format/percentage jaisa hai waisa hi rahe
+        # dtype=str se excel ki har value exact text/format mein read hoti hai bina kisi automatic math change ke
         df = pd.read_excel(EXCEL_FILE, sheet_name=0, dtype=str)
     except Exception:
         df = pd.read_excel(EXCEL_FILE, dtype=str)
@@ -123,9 +123,9 @@ def load_data():
     if 'Status' in df.columns:
         df['Status'] = df['Status'].fillna('Active').replace('', 'Active')
 
-    for col in df.select_dtypes(include=['object']):
-        df[col] = df[col].fillna('')
-        df[col] = df[col].replace(['nan', 'None', 'NAN'], '')
+    # Binaan koi modification ya round kiye direct raw string values assign karna
+    for col in df.columns:
+        df[col] = df[col].fillna('').astype(str).replace(['nan', 'None', 'NAN'], '')
         
     return df
 
