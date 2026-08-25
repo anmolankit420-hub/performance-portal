@@ -1,19 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, send_file
 import pandas as pd
 import os
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # Session secure rakhne ke liye
+app.secret_key = 'your_secret_key_here'
 
-# Excel file path (Aapke project folder ke hisab se)
 EXCEL_FILE = 'asr_tracker.xlsx'
+SHEET_NAME = 'ASR Project Tracking System'
 
 def load_data():
     if os.path.exists(EXCEL_FILE):
         try:
-            # Pandas se excel file read karein
-            df = pd.read_excel(EXCEL_FILE)
-            # Extra spaces hataane ke liye column names se
+            # Exact sheet name ke sath excel read karein
+            df = pd.read_excel(EXCEL_FILE, sheet_name=SHEET_NAME)
             df.columns = df.columns.str.strip()
             df = df.fillna('')
             return df.to_dict(orient='records')
@@ -28,22 +27,20 @@ def index():
 
 @app.route('/admin_panel')
 def admin_panel():
-    # Check karein ki admin logged in hai ya nahi
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin_login'))
     
     search_query = request.args.get('search', '').strip().lower()
     agents = load_data()
     
-    # File exist karti hai ya nahi check karein
     file_exists = os.path.exists(EXCEL_FILE)
     file_name = EXCEL_FILE if file_exists else ''
     
-    # Search filter apply karein
+    # Search filter (CZ ID ya Name par search karega)
     if search_query:
-        agents = [a for a in agents if search_query in str(a.get('CZ ID', '')).lower() or search_query in str(a.get('Names', '')).lower()]
+        agents = [a for a in agents if search_query in str(a.get('CZ ID', '')).lower() or search_query in str(a.get('Name', '')).lower()]
     
-    # Active aur Inactive count nikalna
+    # Active aur Inactive count (agar Status column nahi hai toh sab active rahenge)
     total_active = sum(1 for a in agents if str(a.get('Status', '')).strip().lower() != 'inactive')
     total_inactive = sum(1 for a in agents if str(a.get('Status', '')).strip().lower() == 'inactive')
     
@@ -60,7 +57,6 @@ def admin_login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        # Apna admin username/password yahan set kar sakte hain
         if username == 'admin' and password == 'admin123':
             session['admin_logged_in'] = True
             return redirect(url_for('admin_panel'))
@@ -116,13 +112,10 @@ def download_excel():
         return redirect(url_for('admin_login'))
     
     if os.path.exists(EXCEL_FILE):
-        from flask import send_file
         return send_file(EXCEL_FILE, as_attachment=True)
     else:
         flash('No Excel file available for download.', 'error')
         return redirect(url_for('admin_panel'))
-
-# Add agent, toggle status, delete agent routes aapke pehle wale hi rahenge ya zaroorat ho toh bata dena.
 
 if __name__ == '__main__':
     app.run(debug=True)
