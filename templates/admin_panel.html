@@ -129,6 +129,19 @@
         .btn-info:hover {
             background: #138496;
         }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
         .search-bar {
             display: flex;
             gap: 10px;
@@ -210,7 +223,6 @@
         .btn-status { background: #6c757d; }
         .btn-delete { background: #dc3545; }
         
-        /* Fast Loader Overlay Style */
         #uploadLoader {
             display: none;
             position: fixed;
@@ -269,13 +281,33 @@
 
     <!-- Action Section: Excel Upload & Manual Add -->
     <div class="action-section">
-        <!-- Excel Upload & Download Backup Card -->
+        <!-- Excel Upload, Management & Download Card -->
         <div class="card">
             <h3>Master Excel Management</h3>
+            
+            <!-- Active File Status & Delete Section -->
+            <div style="background: #252525; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333;">
+                <div>
+                    <span style="font-size: 13px; color: #aaa; display: block;">Current Active File:</span>
+                    {% if file_exists %}
+                        <strong style="color: #28a745; font-size: 15px;">📁 {{ file_name }}</strong>
+                    {% else %}
+                        <strong style="color: #dc3545; font-size: 15px;">⚠️ No Excel File Uploaded</strong>
+                    {% endif %}
+                </div>
+                <div>
+                    {% if file_exists %}
+                    <form action="/admin/delete_excel" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete the current excel file? This will clear database records.');">
+                        <button type="submit" class="btn-danger">Delete & Replace File</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                 <div style="flex: 1;">
                     <form id="uploadForm" onsubmit="uploadExcelFile(event)">
-                        <label for="excelFile">Upload / Replace Master Excel:</label>
+                        <label for="excelFile">Upload New Master Excel:</label>
                         <input type="file" id="excelFile" name="excel_file" accept=".xlsx, .xls" required>
                         <button type="submit" class="btn" style="margin-top: 5px;">Upload & Sync Fast</button>
                     </form>
@@ -396,7 +428,6 @@
 function uploadExcelFile(event) {
     event.preventDefault();
     
-    // Loader show karo
     document.getElementById('uploadLoader').style.display = 'block';
     
     let fileInput = document.getElementById('excelFile');
