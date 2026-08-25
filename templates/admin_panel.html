@@ -13,7 +13,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1300px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         .header-bar {
@@ -169,15 +169,16 @@
             border-radius: 8px;
             overflow-x: auto;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            max-height: 600px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             text-align: left;
-            font-size: 14px;
+            font-size: 13px;
         }
         th, td {
-            padding: 12px 15px;
+            padding: 10px 12px;
             border-bottom: 1px solid #2a2a2a;
             white-space: nowrap;
         }
@@ -186,43 +187,11 @@
             color: #ff7b00;
             position: sticky;
             top: 0;
+            z-index: 10;
         }
         tr:hover {
             background: #252525;
         }
-        .badge-active {
-            background: rgba(40, 167, 69, 0.2);
-            color: #28a745;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .badge-inactive {
-            background: rgba(220, 53, 69, 0.2);
-            color: #dc3545;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .action-btns {
-            display: flex;
-            gap: 6px;
-        }
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 12px;
-            border-radius: 3px;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-        .btn-edit { background: #ffc107; color: #000; }
-        .btn-status { background: #6c757d; }
-        .btn-delete { background: #dc3545; }
-        
         #uploadLoader {
             display: none;
             position: fixed;
@@ -279,13 +248,11 @@
         </div>
     </div>
 
-    <!-- Action Section: Excel Upload & Manual Add -->
+    <!-- Action Section: Excel Management -->
     <div class="action-section">
-        <!-- Excel Upload Card -->
-        <div class="card">
-            <h3>Master Excel Management</h3>
+        <div class="card" style="grid-column: span 2;">
+            <h3>Master Excel Management (ASR Project Tracking System)</h3>
             
-            <!-- Active File Status & Delete Section -->
             <div style="background: #252525; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333;">
                 <div>
                     <span style="font-size: 13px; color: #aaa; display: block;">Current Active File:</span>
@@ -319,31 +286,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Manual Add Agent Card -->
-        <div class="card">
-            <h3>Add New Agent</h3>
-            <form action="/admin/add_agent" method="POST">
-                <label>CZ ID</label>
-                <input type="text" name="cz_id" required placeholder="e.g. 451846">
-                
-                <label>Agent Name</label>
-                <input type="text" name="name" required placeholder="Full Name">
-                
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex: 1;">
-                        <label>TL Name</label>
-                        <input type="text" name="tl" placeholder="Team Leader">
-                    </div>
-                    <div style="flex: 1;">
-                        <label>Shift</label>
-                        <input type="text" name="shift" placeholder="Shift">
-                    </div>
-                </div>
-                
-                <button type="submit" class="btn">Add Agent</button>
-            </form>
-        </div>
     </div>
 
     <!-- Search Bar -->
@@ -355,56 +297,42 @@
         {% endif %}
     </form>
 
-    <!-- Agents Table -->
+    <!-- Agents Table (Showing exact Excel columns) -->
     <div class="table-container">
         <table>
             <thead>
                 <tr>
                     <th>CZ ID</th>
-                    <th>Names</th>
+                    <th>Name</th>
                     <th>Shift</th>
                     <th>TL</th>
                     <th>QA</th>
+                    <th>PIP</th>
                     <th>Booking%</th>
+                    <th>POC%</th>
                     <th>Realization%</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th>Productivity</th>
+                    <th>URN</th>
                 </tr>
             </thead>
             <tbody>
                 {% for agent in agents %}
                 <tr>
                     <td><strong>{{ agent['CZ ID'] }}</strong></td>
-                    <td>{{ agent['Names'] }}</td>
+                    <td>{{ agent['Name'] }}</td>
                     <td>{{ agent['Shift'] }}</td>
                     <td>{{ agent['TL'] }}</td>
                     <td>{{ agent['QA'] }}</td>
+                    <td>{{ agent['PIP'] }}</td>
                     <td>{{ agent['Booking%'] }}</td>
+                    <td>{{ agent['POC%'] }}</td>
                     <td>{{ agent['Realization%'] }}</td>
-                    <td>
-                        {% if agent['Status'] | lower == 'inactive' %}
-                            <span class="badge-inactive">Inactive</span>
-                        {% else %}
-                            <span class="badge-active">Active</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="action-btns">
-                            <a href="/admin/edit_agent/{{ agent['CZ ID'] }}" class="btn-sm btn-edit">Edit</a>
-                            
-                            <form action="/admin/toggle_status/{{ agent['CZ ID'] }}" method="POST" style="margin:0;">
-                                <button type="submit" class="btn-sm btn-status">Toggle</button>
-                            </form>
-                            
-                            <form action="/admin/delete_agent/{{ agent['CZ ID'] }}" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete this agent?');">
-                                <button type="submit" class="btn-sm btn-delete">Delete</button>
-                            </form>
-                        </div>
-                    </td>
+                    <td>{{ agent['Productivity'] }}</td>
+                    <td>{{ agent['URN'] }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" style="text-align: center; color: #777; padding: 30px;">No agents found in the database.</td>
+                    <td colspan="11" style="text-align: center; color: #777; padding: 30px;">No records found in the excel sheet.</td>
                 </tr>
                 {% endfor %}
             </tbody>
