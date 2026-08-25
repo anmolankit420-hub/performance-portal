@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 app = Flask(__name__)
 app.secret_key = 'asr_secret_key_12345'
 EXCEL_FILE = 'asr_tracker.xlsx'
+ADMIN_PASSWORD = 'Anmol@9876#'
 
 def load_data():
     if not os.path.exists(EXCEL_FILE):
@@ -17,12 +18,15 @@ def load_data():
         df.to_excel(EXCEL_FILE, index=False)
         
     try:
+        # dtype=str se excel ki har value exact read hogi bina kisi automatic formatting/rounding ke
         df = pd.read_excel(EXCEL_FILE, sheet_name=0, dtype=str)
     except Exception:
         df = pd.read_excel(EXCEL_FILE, dtype=str)
     
+    # Strip spaces from column headers
     df.columns = [str(col).strip() for col in df.columns]
     
+    # Smart Mapping taaki Excel ke headers chahe jo bhi hon, code unhe standard keys par map kar de
     rename_map = {}
     for col in df.columns:
         col_lower = col.lower().replace('_', ' ').strip()
@@ -50,6 +54,7 @@ def load_data():
             
     df = df.rename(columns=rename_map)
 
+    # Ensure essential columns exist
     for col in ['CZ ID', 'Names', 'Status']:
         if col not in df.columns:
             df[col] = ''
@@ -57,6 +62,7 @@ def load_data():
     if 'Status' in df.columns:
         df['Status'] = df['Status'].fillna('Active').replace('', 'Active')
 
+    # Fill NaN values with empty string safely without altering raw text/numbers
     for col in df.columns:
         df[col] = df[col].fillna('').astype(str).replace(['nan', 'None', 'NAN'], '')
         
@@ -91,8 +97,8 @@ def admin_login():
     error = None
     if request.method == 'POST':
         pwd = request.form.get('password', '').strip()
-        # Yahan aap apna password check kar sakte hain. Agar aap chahein toh ise change bhi kar sakte hain.
-        if pwd == 'Anmol@9876#':
+        if pwd == ADMIN_PASSWORD:
+            session.clear()
             session['admin_logged'] = True
             return redirect(url_for('admin_panel'))
         else:
@@ -237,4 +243,4 @@ def admin_logout():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5000)
