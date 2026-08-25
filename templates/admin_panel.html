@@ -66,14 +66,9 @@
         }
         .action-section {
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 1fr;
             gap: 20px;
             margin-bottom: 20px;
-        }
-        @media (max-width: 900px) {
-            .action-section {
-                grid-template-columns: 1fr;
-            }
         }
         .card {
             background: #1e1e1e;
@@ -250,7 +245,7 @@
 
     <!-- Action Section: Excel Management -->
     <div class="action-section">
-        <div class="card" style="grid-column: span 2;">
+        <div class="card">
             <h3>Master Excel Management (ASR Project Tracking System)</h3>
             
             <div style="background: #252525; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333;">
@@ -297,7 +292,7 @@
         {% endif %}
     </form>
 
-    <!-- Agents Table (Showing exact Excel columns) -->
+    <!-- Agents Table -->
     <div class="table-container">
         <table>
             <thead>
